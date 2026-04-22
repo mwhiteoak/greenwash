@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Greenwashing Auditor — Australian Consumer Law</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=JetBrains+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Fraunces', 'Georgia', 'serif'],
+            body: ['"Inter Tight"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            ink: '#1a1a1a',
+            paper: '#faf7f2',
+            cream: '#f4efe6',
+            sage: '#6b7d5a',
+            rust: '#a0522d',
+            amber: '#b8860b',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #faf7f2;
+      background-image:
+        radial-gradient(circle at 15% 10%, rgba(107, 125, 90, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 85% 80%, rgba(160, 82, 45, 0.04) 0%, transparent 50%);
+      color: #1a1a1a;
+    }
+    .rule {
+      background-image: linear-gradient(to right, #1a1a1a 50%, transparent 50%);
+      background-size: 8px 1px;
+      background-repeat: repeat-x;
+      background-position: 0 50%;
+      height: 1px;
+    }
+    .serif-italic { font-family: 'Fraunces', serif; font-style: italic; }
+    .tabular { font-variant-numeric: tabular-nums; }
+    details > summary { list-style: none; cursor: pointer; }
+    details > summary::-webkit-details-marker { display: none; }
+    details > summary::after { content: '＋'; float: right; font-family: 'Fraunces', serif; }
+    details[open] > summary::after { content: '−'; }
+
+    .sev-high   { background: #8b2a1a; color: #faf7f2; }
+    .sev-medium { background: #b8860b; color: #faf7f2; }
+    .sev-low    { background: #6b7d5a; color: #faf7f2; }
+
+    .log-line { animation: slideIn 0.3s ease-out; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .progress-track { background: rgba(26,26,26,0.08); }
+    .progress-bar { background: #1a1a1a; transition: width 0.4s ease; }
+  </style>
+</head>
+<body class="font-body antialiased min-h-screen">
+
+  <!-- Masthead -->
+  <header class="max-w-6xl mx-auto px-6 pt-16 pb-12">
+    <div class="flex items-baseline justify-between">
+      <div class="text-xs tracking-[0.3em] uppercase text-ink/60">
+        № 001 &nbsp;·&nbsp; Compliance Review
+      </div>
+      <div class="text-xs tracking-[0.3em] uppercase text-ink/60 tabular">
+        AU &nbsp;·&nbsp; <span id="today"></span>
+      </div>
+    </div>
+    <div class="rule my-6"></div>
+    <h1 class="font-display text-6xl md:text-7xl leading-[0.95] tracking-tight">
+      The Greenwashing<br />
+      <span class="serif-italic text-sage">Auditor</span>
+    </h1>
+    <p class="mt-8 max-w-2xl font-display text-xl leading-relaxed text-ink/80">
+      A structured review of environmental and sustainability claims across
+      your website, evaluated against the
+      <em>Australian Consumer Law</em>, ACCC guidance, and ASIC INFO 271.
+    </p>
+  </header>
+
+  <!-- Form -->
+  <section class="max-w-6xl mx-auto px-6 pb-16">
+    <div class="grid md:grid-cols-12 gap-8">
+      <aside class="md:col-span-4">
+        <div class="text-xs tracking-[0.25em] uppercase text-ink/60 mb-3">Framework</div>
+        <ul class="font-display text-base space-y-2 text-ink/80">
+          <li>— ACL ss 18 &amp; 29</li>
+          <li>— ACCC 8 principles (Dec 2023)</li>
+          <li>— ASIC INFO 271</li>
+        </ul>
+        <div class="rule my-8"></div>
+        <div class="text-xs tracking-[0.25em] uppercase text-ink/60 mb-3">API Key</div>
+        <p class="text-sm text-ink/70 leading-relaxed">
+          You supply your own Anthropic API key. It is used only for this
+          request and never stored on the server.
+          <a href="https://console.anthropic.com/" target="_blank" rel="noopener"
+             class="underline decoration-ink/30 hover:decoration-ink">Get a key →</a>
+        </p>
+      </aside>
+
+      <div class="md:col-span-8">
+        <form id="audit-form" class="space-y-6">
+          <div>
+            <label class="block text-xs tracking-[0.25em] uppercase text-ink/60 mb-2" for="url">
+              Website URL
+            </label>
+            <input id="url" name="url" type="url" required
+              placeholder="https://example.com.au"
+              class="w-full bg-transparent border-0 border-b-2 border-ink/80 pb-2 font-display text-2xl focus:outline-none focus:border-sage placeholder:text-ink/30" />
+          </div>
+
+          <div>
+            <label class="block text-xs tracking-[0.25em] uppercase text-ink/60 mb-2" for="api_key">
+              Anthropic API Key
+            </label>
+            <input id="api_key" name="api_key" type="password" required
+              placeholder="sk-ant-..."
+              autocomplete="off"
+              class="w-full bg-transparent border-0 border-b-2 border-ink/80 pb-2 font-mono text-base focus:outline-none focus:border-sage placeholder:text-ink/30" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <label class="block text-xs tracking-[0.25em] uppercase text-ink/60 mb-2" for="max_pages">
+                Max pages
+              </label>
+              <input id="max_pages" name="max_pages" type="number" value="50" min="1" max="300"
+                class="w-full bg-transparent border-0 border-b-2 border-ink/80 pb-2 font-display text-xl focus:outline-none focus:border-sage tabular" />
+            </div>
+            <div>
+              <label class="block text-xs tracking-[0.25em] uppercase text-ink/60 mb-2" for="delay">
+                Request delay (s)
+              </label>
+              <input id="delay" name="delay" type="number" value="0.5" min="0" max="10" step="0.1"
+                class="w-full bg-transparent border-0 border-b-2 border-ink/80 pb-2 font-display text-xl focus:outline-none focus:border-sage tabular" />
+            </div>
+          </div>
+
+          <label class="flex items-center gap-3 text-sm text-ink/80 cursor-pointer select-none">
+            <input id="include_subdomains" type="checkbox" class="w-4 h-4 accent-sage" />
+            Include subdomains
+          </label>
+
+          <div class="pt-4">
+            <button type="submit" id="submit-btn"
+              class="group inline-flex items-center gap-3 bg-ink text-paper px-7 py-3 font-display text-lg tracking-tight hover:bg-sage transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <span>Begin audit</span>
+              <span class="transition-transform group-hover:translate-x-1">→</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Progress -->
+  <section id="progress-section" class="max-w-6xl mx-auto px-6 pb-12 hidden">
+    <div class="rule mb-6"></div>
+    <div class="flex items-baseline justify-between mb-4">
+      <h2 class="font-display text-3xl">
+        <span class="serif-italic">In progress</span>
+      </h2>
+      <div class="text-sm tabular text-ink/70">
+        <span id="pages-done">0</span> / <span id="pages-total">—</span> pages
+        &nbsp;·&nbsp;
+        <span id="flag-total">0</span> flags
+      </div>
+    </div>
+    <div class="progress-track w-full h-1 mb-8">
+      <div id="progress-bar" class="progress-bar h-1" style="width:0%"></div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <div class="text-xs tracking-[0.25em] uppercase text-ink/60 mb-3">Live log</div>
+        <div id="log" class="font-mono text-xs text-ink/70 h-72 overflow-y-auto space-y-1 bg-cream/40 p-4 border border-ink/10"></div>
+      </div>
+      <div>
+        <div class="text-xs tracking-[0.25em] uppercase text-ink/60 mb-3">Findings as they arrive</div>
+        <div id="findings" class="h-72 overflow-y-auto space-y-3 pr-2"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Result -->
+  <section id="result-section" class="max-w-6xl mx-auto px-6 pb-24 hidden">
+    <div class="rule mb-6"></div>
+    <h2 class="font-display text-5xl leading-none mb-8">
+      <span class="serif-italic">Complete.</span>
+    </h2>
+    <div class="grid md:grid-cols-4 gap-6 mb-10">
+      <div class="border border-ink/20 p-5">
+        <div class="text-xs tracking-[0.25em] uppercase text-ink/60">Pages scanned</div>
+        <div class="font-display text-5xl mt-2 tabular" id="final-pages">—</div>
+      </div>
+      <div class="border border-ink/20 p-5">
+        <div class="text-xs tracking-[0.25em] uppercase text-ink/60">Total flags</div>
+        <div class="font-display text-5xl mt-2 tabular" id="final-flags">—</div>
+      </div>
+      <div class="border border-ink/20 p-5 bg-[#8b2a1a]/5">
+        <div class="text-xs tracking-[0.25em] uppercase text-[#8b2a1a]">High severity</div>
+        <div class="font-display text-5xl mt-2 tabular" id="final-high">—</div>
+      </div>
+      <div class="border border-ink/20 p-5 bg-amber/5">
+        <div class="text-xs tracking-[0.25em] uppercase text-amber">Medium</div>
+        <div class="font-display text-5xl mt-2 tabular" id="final-medium">—</div>
+      </div>
+    </div>
+    <a id="download-link" href="#"
+       class="inline-flex items-center gap-3 bg-ink text-paper px-7 py-3 font-display text-lg tracking-tight hover:bg-sage transition-colors">
+      <span>Download Excel report</span>
+      <span>↓</span>
+    </a>
+  </section>
+
+  <!-- Footer -->
+  <footer class="max-w-6xl mx-auto px-6 pb-16">
+    <div class="rule mb-4"></div>
+    <p class="text-xs text-ink/50 leading-relaxed max-w-3xl">
+      This tool produces a first-pass triage of potential greenwashing risk.
+      Outputs are generated by a large language model and must be reviewed by
+      qualified legal counsel before being acted upon. Not legal advice.
+    </p>
+  </footer>
+
+  <script>
+    document.getElementById('today').textContent = new Date().toLocaleDateString('en-AU', {
+      year: 'numeric', month: 'short', day: '2-digit'
+    }).toUpperCase();
+
+    const form = document.getElementById('audit-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const progressSection = document.getElementById('progress-section');
+    const resultSection = document.getElementById('result-section');
+    const logEl = document.getElementById('log');
+    const findingsEl = document.getElementById('findings');
+    const pagesDoneEl = document.getElementById('pages-done');
+    const pagesTotalEl = document.getElementById('pages-total');
+    const flagTotalEl = document.getElementById('flag-total');
+    const progressBar = document.getElementById('progress-bar');
+
+    let plannedPages = 0;
+
+    function log(msg, tone = 'neutral') {
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      const ts = new Date().toLocaleTimeString('en-AU', { hour12: false });
+      const colour = tone === 'flag' ? 'text-rust'
+                   : tone === 'skip' ? 'text-ink/40'
+                   : tone === 'done' ? 'text-sage' : '';
+      line.innerHTML = `<span class="text-ink/40">${ts}</span> <span class="${colour}">${msg}</span>`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function renderFinding(result) {
+      if (!result.flags || result.flags.length === 0) return;
+      result.flags.forEach(f => {
+        const card = document.createElement('div');
+        card.className = 'border-l-2 border-ink/20 pl-4 py-1 log-line';
+        const sevClass = f.severity === 'High' ? 'sev-high'
+                       : f.severity === 'Medium' ? 'sev-medium' : 'sev-low';
+        card.innerHTML = `
+          <div class="flex items-center gap-2 mb-1">
+            <span class="${sevClass} text-[10px] tracking-widest uppercase px-2 py-0.5">${f.severity}</span>
+            <a href="${result.url}" target="_blank" rel="noopener"
+               class="text-xs font-mono text-ink/50 hover:text-ink truncate max-w-xs">${result.url}</a>
+          </div>
+          <div class="font-display italic text-base leading-snug">"${f.claim_text}"</div>
+          <div class="text-xs text-ink/60 mt-1">${f.breach_reason}</div>
+        `;
+        findingsEl.insertBefore(card, findingsEl.firstChild);
+      });
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      logEl.innerHTML = '';
+      findingsEl.innerHTML = '';
+      resultSection.classList.add('hidden');
+      progressSection.classList.remove('hidden');
+      plannedPages = 0;
+
+      const payload = {
+        url: document.getElementById('url').value,
+        api_key: document.getElementById('api_key').value,
+        max_pages: parseInt(document.getElementById('max_pages').value, 10),
+        delay: parseFloat(document.getElementById('delay').value),
+        include_subdomains: document.getElementById('include_subdomains').checked,
+      };
+
+      let startResp;
+      try {
+        startResp = await fetch('/api/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } catch (err) {
+        log('Network error: ' + err.message, 'skip');
+        submitBtn.disabled = false;
+        return;
+      }
+
+      if (!startResp.ok) {
+        const txt = await startResp.text();
+        log('Failed to start: ' + txt, 'skip');
+        submitBtn.disabled = false;
+        return;
+      }
+      const { job_id, stream_url } = await startResp.json();
+      log(`Job ${job_id.slice(0,8)} started`);
+
+      const src = new EventSource(stream_url);
+      src.addEventListener('status', e => log(JSON.parse(e.data).message));
+      src.addEventListener('total', e => {
+        plannedPages = JSON.parse(e.data).planned;
+        pagesTotalEl.textContent = plannedPages;
+      });
+      src.addEventListener('fetch', e => {
+        const d = JSON.parse(e.data);
+        log(`fetching [${d.index}] ${d.url}`);
+      });
+      src.addEventListener('analyse', e => {
+        const d = JSON.parse(e.data);
+        log(`analysing ${d.url}`);
+      });
+      src.addEventListener('skip', e => {
+        const d = JSON.parse(e.data);
+        log(`skip ${d.url} (${d.reason})`, 'skip');
+      });
+      src.addEventListener('result', e => {
+        const d = JSON.parse(e.data);
+        pagesDoneEl.textContent = d.pages_done;
+        flagTotalEl.textContent = d.running_total;
+        if (plannedPages > 0) {
+          const pct = Math.min(100, Math.round((d.pages_done / plannedPages) * 100));
+          progressBar.style.width = pct + '%';
+        }
+        if (d.flags.length > 0) {
+          log(`✓ ${d.flags.length} flag(s) on ${d.url}`, 'flag');
+        }
+        renderFinding(d);
+      });
+      src.addEventListener('error', e => {
+        try {
+          const d = JSON.parse(e.data);
+          log('ERROR: ' + d.message, 'skip');
+        } catch (_) {
+          log('Stream error', 'skip');
+        }
+        src.close();
+        submitBtn.disabled = false;
+      });
+      src.addEventListener('done', e => {
+        let d = {};
+        try { d = JSON.parse(e.data); } catch (_) {}
+        log('audit complete', 'done');
+        src.close();
+        submitBtn.disabled = false;
+
+        if (d.download_url) {
+          progressBar.style.width = '100%';
+          document.getElementById('final-pages').textContent = d.pages_scanned ?? pagesDoneEl.textContent;
+          document.getElementById('final-flags').textContent = d.total_flags ?? flagTotalEl.textContent;
+
+          // Count severities from rendered findings
+          const highCount = findingsEl.querySelectorAll('.sev-high').length;
+          const medCount  = findingsEl.querySelectorAll('.sev-medium').length;
+          document.getElementById('final-high').textContent = highCount;
+          document.getElementById('final-medium').textContent = medCount;
+
+          document.getElementById('download-link').href = d.download_url;
+          resultSection.classList.remove('hidden');
+          resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
