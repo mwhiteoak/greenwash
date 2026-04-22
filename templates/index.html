@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Greenwashing Auditor — Australian Consumer Law</title>
+  <title>Greenwash Check — Audit your website for dodgy eco claims</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=JetBrains+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -15,17 +15,35 @@
       theme: {
         extend: {
           fontFamily: {
-            display: ['Fraunces', 'Georgia', 'serif'],
-            body: ['"Inter Tight"', 'system-ui', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
           },
           colors: {
-            ink: '#1a1a1a',
-            paper: '#faf7f2',
-            cream: '#f4efe6',
-            sage: '#6b7d5a',
-            rust: '#a0522d',
-            amber: '#b8860b',
+            coral: {
+              50:  '#fff5f3',
+              100: '#ffe4de',
+              200: '#ffc5ba',
+              300: '#ff9d8a',
+              400: '#ff7a65',
+              500: '#ff5a5f',
+              600: '#e84148',
+              700: '#c53238',
+            },
+            ink: {
+              900: '#222222',
+              800: '#484848',
+              700: '#6e6e6e',
+              500: '#b0b0b0',
+              300: '#dddddd',
+              200: '#ebebeb',
+              100: '#f7f7f7',
+            },
+            mint: '#00a699',
+            sunny: '#ffb400',
+          },
+          boxShadow: {
+            card:  '0 6px 16px rgba(0,0,0,0.06), 0 1.5px 4px rgba(0,0,0,0.04)',
+            pop:   '0 10px 30px rgba(0,0,0,0.10), 0 3px 6px rgba(0,0,0,0.04)',
+            glow:  '0 8px 28px rgba(255,90,95,0.35)',
           },
         },
       },
@@ -34,267 +52,402 @@
 
   <style>
     body {
-      background-color: #faf7f2;
-      background-image:
-        radial-gradient(circle at 15% 10%, rgba(107, 125, 90, 0.05) 0%, transparent 50%),
-        radial-gradient(circle at 85% 80%, rgba(160, 82, 45, 0.04) 0%, transparent 50%);
-      color: #1a1a1a;
+      background:
+        radial-gradient(1200px 600px at 85% -10%, rgba(255,180,0,0.08), transparent 60%),
+        radial-gradient(1000px 500px at -10% 20%, rgba(0,166,153,0.06), transparent 55%),
+        linear-gradient(180deg, #fff 0%, #fafafa 100%);
+      color: #222;
     }
-    .rule {
-      background-image: linear-gradient(to right, #1a1a1a 50%, transparent 50%);
-      background-size: 8px 1px;
-      background-repeat: repeat-x;
-      background-position: 0 50%;
-      height: 1px;
+    .slide-in { animation: slideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
-    .serif-italic { font-family: 'Fraunces', serif; font-style: italic; }
-    .tabular { font-variant-numeric: tabular-nums; }
+    .log-line { animation: fadeIn 0.25s ease-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .field:focus {
+      outline: none;
+      border-color: #222 !important;
+      box-shadow: 0 0 0 4px rgba(34,34,34,0.06);
+    }
+    .scroll-soft::-webkit-scrollbar { width: 8px; }
+    .scroll-soft::-webkit-scrollbar-track { background: transparent; }
+    .scroll-soft::-webkit-scrollbar-thumb { background: #ddd; border-radius: 999px; }
+    .scroll-soft::-webkit-scrollbar-thumb:hover { background: #bbb; }
+    .wave {
+      background: linear-gradient(135deg, #ff5a5f 0%, #ff7a65 40%, #ffb400 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
     details > summary { list-style: none; cursor: pointer; }
     details > summary::-webkit-details-marker { display: none; }
-    details > summary::after { content: '＋'; float: right; font-family: 'Fraunces', serif; }
-    details[open] > summary::after { content: '−'; }
-
-    .sev-high   { background: #8b2a1a; color: #faf7f2; }
-    .sev-medium { background: #b8860b; color: #faf7f2; }
-    .sev-low    { background: #6b7d5a; color: #faf7f2; }
-
-    .log-line { animation: slideIn 0.3s ease-out; }
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .progress-track { background: rgba(26,26,26,0.08); }
-    .progress-bar { background: #1a1a1a; transition: width 0.4s ease; }
   </style>
 </head>
-<body class="font-body antialiased min-h-screen">
 
-  <!-- Masthead -->
-  <header class="max-w-6xl mx-auto px-6 pt-16 pb-12">
-    <div class="flex items-baseline justify-between">
-      <div class="text-xs tracking-[0.3em] uppercase text-ink/60">
-        № 001 &nbsp;·&nbsp; Compliance Review
+<body class="font-sans antialiased text-ink-900 min-h-screen">
+
+  <nav class="max-w-6xl mx-auto px-6 md:px-10 py-5 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2 group">
+      <div class="w-9 h-9 rounded-xl bg-coral-500 flex items-center justify-center shadow-glow transition-transform group-hover:scale-105">
+        <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5 text-white" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2s-6 6-6 11a6 6 0 0 0 12 0c0-5-6-11-6-11z"/>
+          <path d="M12 7v10"/>
+        </svg>
       </div>
-      <div class="text-xs tracking-[0.3em] uppercase text-ink/60 tabular">
-        AU &nbsp;·&nbsp; <span id="today"></span>
-      </div>
+      <span class="font-extrabold text-lg tracking-tight">Greenwash Check</span>
+    </a>
+    <div class="hidden md:flex items-center gap-2 text-sm text-ink-700">
+      <span class="w-2 h-2 rounded-full bg-mint"></span>
+      <span>Built for Australian compliance</span>
     </div>
-    <div class="rule my-6"></div>
-    <h1 class="font-display text-6xl md:text-7xl leading-[0.95] tracking-tight">
-      The Greenwashing<br />
-      <span class="serif-italic text-sage">Auditor</span>
+  </nav>
+
+  <section class="max-w-6xl mx-auto px-6 md:px-10 pt-8 md:pt-14 pb-10">
+    <div class="inline-flex items-center gap-2 bg-coral-50 text-coral-700 px-3 py-1.5 rounded-full text-xs font-semibold mb-6">
+      <span>🌱</span>
+      <span>ACCC · ACL · ASIC INFO 271</span>
+    </div>
+    <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.02] max-w-4xl">
+      Is your website
+      <span class="wave">greenwashing</span>
+      without knowing it?
     </h1>
-    <p class="mt-8 max-w-2xl font-display text-xl leading-relaxed text-ink/80">
-      A structured review of environmental and sustainability claims across
-      your website, evaluated against the
-      <em>Australian Consumer Law</em>, ACCC guidance, and ASIC INFO 271.
+    <p class="mt-6 text-lg md:text-xl text-ink-800 max-w-2xl leading-relaxed">
+      Paste a URL, grab a coffee. We'll crawl every page and flag environmental claims
+      that could land you in trouble under Australian law. Download the full report as Excel.
     </p>
-  </header>
+  </section>
 
-  <!-- Form -->
-  <section class="max-w-6xl mx-auto px-6 pb-16">
-    <div class="grid md:grid-cols-12 gap-8">
-      <aside class="md:col-span-4">
-        <div class="text-xs tracking-[0.25em] uppercase text-ink/60 mb-3">Framework</div>
-        <ul class="font-display text-base space-y-2 text-ink/80">
-          <li>— ACL ss 18 &amp; 29</li>
-          <li>— ACCC 8 principles (Dec 2023)</li>
-          <li>— ASIC INFO 271</li>
-        </ul>
-        <div class="rule my-8"></div>
-        <div class="text-xs tracking-[0.25em] uppercase text-ink/60 mb-3">API Key</div>
-        <p class="text-sm text-ink/70 leading-relaxed">
-          You supply your own Anthropic API key. It is used only for this
-          request and never stored on the server.
-          <a href="https://console.anthropic.com/" target="_blank" rel="noopener"
-             class="underline decoration-ink/30 hover:decoration-ink">Get a key →</a>
-        </p>
-      </aside>
+  <section class="max-w-6xl mx-auto px-6 md:px-10 pb-16">
+    <div class="bg-white border border-ink-200 rounded-3xl shadow-card p-6 md:p-10">
+      <form id="audit-form" class="space-y-6">
 
-      <div class="md:col-span-8">
-        <form id="audit-form" class="space-y-6">
-          <div>
-            <label class="block text-xs tracking-[0.25em] uppercase text-ink/60 mb-2" for="url">
-              Website URL
-            </label>
+        <div>
+          <label for="url" class="block text-sm font-semibold mb-2">Website to audit</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-ink-500">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/>
+              </svg>
+            </div>
             <input id="url" name="url" type="url" required
               placeholder="https://example.com.au"
-              class="w-full bg-transparent border-0 border-b-2 border-ink/80 pb-2 font-display text-2xl focus:outline-none focus:border-sage placeholder:text-ink/30" />
+              class="field w-full pl-14 pr-4 py-5 text-lg font-medium bg-ink-100 border-2 border-transparent rounded-2xl placeholder:text-ink-500 transition" />
           </div>
+        </div>
 
+        <div class="grid md:grid-cols-2 gap-5">
           <div>
-            <label class="block text-xs tracking-[0.25em] uppercase text-ink/60 mb-2" for="api_key">
-              Anthropic API Key
+            <label for="api_key" class="block text-sm font-semibold mb-2">
+              Your Anthropic API key
+              <span class="ml-1 font-normal text-ink-700">· stored nowhere</span>
             </label>
-            <input id="api_key" name="api_key" type="password" required
-              placeholder="sk-ant-..."
-              autocomplete="off"
-              class="w-full bg-transparent border-0 border-b-2 border-ink/80 pb-2 font-mono text-base focus:outline-none focus:border-sage placeholder:text-ink/30" />
+            <div class="relative">
+              <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-ink-500">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a4 4 0 11-4 4m4-4h4m-4 0v4m-8 6a4 4 0 108 0 4 4 0 00-8 0z"/>
+                </svg>
+              </div>
+              <input id="api_key" name="api_key" type="password" required autocomplete="off"
+                placeholder="sk-ant-..."
+                class="field w-full pl-14 pr-4 py-5 bg-ink-100 border-2 border-transparent rounded-2xl placeholder:text-ink-500 transition font-mono text-sm" />
+            </div>
+            <a href="https://console.anthropic.com/" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-1 mt-2 text-xs text-ink-700 hover:text-ink-900 underline underline-offset-2">
+              Don't have one? Get a key
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+            </a>
           </div>
 
-          <div class="grid grid-cols-2 gap-6">
+          <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs tracking-[0.25em] uppercase text-ink/60 mb-2" for="max_pages">
-                Max pages
-              </label>
+              <label for="max_pages" class="block text-sm font-semibold mb-2">Max pages</label>
               <input id="max_pages" name="max_pages" type="number" value="50" min="1" max="300"
-                class="w-full bg-transparent border-0 border-b-2 border-ink/80 pb-2 font-display text-xl focus:outline-none focus:border-sage tabular" />
+                class="field w-full px-4 py-5 text-lg font-semibold tabular-nums bg-ink-100 border-2 border-transparent rounded-2xl transition" />
             </div>
             <div>
-              <label class="block text-xs tracking-[0.25em] uppercase text-ink/60 mb-2" for="delay">
-                Request delay (s)
-              </label>
+              <label for="delay" class="block text-sm font-semibold mb-2">Delay (s)</label>
               <input id="delay" name="delay" type="number" value="0.5" min="0" max="10" step="0.1"
-                class="w-full bg-transparent border-0 border-b-2 border-ink/80 pb-2 font-display text-xl focus:outline-none focus:border-sage tabular" />
+                class="field w-full px-4 py-5 text-lg font-semibold tabular-nums bg-ink-100 border-2 border-transparent rounded-2xl transition" />
             </div>
           </div>
+        </div>
 
-          <label class="flex items-center gap-3 text-sm text-ink/80 cursor-pointer select-none">
-            <input id="include_subdomains" type="checkbox" class="w-4 h-4 accent-sage" />
-            Include subdomains
-          </label>
+        <label class="inline-flex items-center gap-3 cursor-pointer select-none group">
+          <span class="relative">
+            <input id="include_subdomains" type="checkbox" class="sr-only peer" />
+            <span class="block w-11 h-6 bg-ink-300 rounded-full transition-colors peer-checked:bg-coral-500"></span>
+            <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></span>
+          </span>
+          <span class="text-sm font-medium">Include subdomains</span>
+        </label>
 
-          <div class="pt-4">
-            <button type="submit" id="submit-btn"
-              class="group inline-flex items-center gap-3 bg-ink text-paper px-7 py-3 font-display text-lg tracking-tight hover:bg-sage transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-              <span>Begin audit</span>
-              <span class="transition-transform group-hover:translate-x-1">→</span>
-            </button>
+        <div class="pt-2">
+          <button type="submit" id="submit-btn"
+            class="group inline-flex items-center gap-2 bg-gradient-to-r from-coral-500 to-coral-400 text-white px-8 py-4 rounded-2xl font-semibold text-base shadow-glow hover:shadow-pop hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0">
+            <span id="submit-label">Start the audit</span>
+            <svg class="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+          </button>
+          <p class="mt-3 text-xs text-ink-700">
+            You pay Anthropic per audit · roughly 10–50¢ for a small site
+          </p>
+        </div>
+      </form>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-4 mt-6">
+      <div class="bg-white border border-ink-200 rounded-2xl p-5 flex gap-3 items-start">
+        <div class="w-9 h-9 rounded-xl bg-coral-50 text-coral-600 flex items-center justify-center shrink-0">🔍</div>
+        <div>
+          <div class="font-semibold">Every page checked</div>
+          <div class="text-sm text-ink-700 mt-0.5">Sitemap + crawl, respects robots.txt</div>
+        </div>
+      </div>
+      <div class="bg-white border border-ink-200 rounded-2xl p-5 flex gap-3 items-start">
+        <div class="w-9 h-9 rounded-xl bg-mint/10 text-mint flex items-center justify-center shrink-0">⚖️</div>
+        <div>
+          <div class="font-semibold">Grounded in the law</div>
+          <div class="text-sm text-ink-700 mt-0.5">ACL ss 18 &amp; 29, ACCC's 8 principles, ASIC INFO 271</div>
+        </div>
+      </div>
+      <div class="bg-white border border-ink-200 rounded-2xl p-5 flex gap-3 items-start">
+        <div class="w-9 h-9 rounded-xl bg-sunny/10 flex items-center justify-center shrink-0" style="color:#b88500">📊</div>
+        <div>
+          <div class="font-semibold">Excel you can share</div>
+          <div class="text-sm text-ink-700 mt-0.5">Severity, claim, reason, remediation</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="progress-section" class="max-w-6xl mx-auto px-6 md:px-10 pb-12 hidden">
+    <div class="bg-white border border-ink-200 rounded-3xl shadow-card overflow-hidden">
+
+      <div class="px-6 md:px-10 py-6 border-b border-ink-200 flex flex-wrap gap-4 items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="relative flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-coral-400 opacity-70"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-coral-500"></span>
+          </span>
+          <h2 class="text-xl font-bold">Auditing now…</h2>
+        </div>
+        <div class="flex items-center gap-6 text-sm">
+          <div class="flex items-baseline gap-1.5">
+            <span id="pages-done" class="text-xl font-extrabold tabular-nums">0</span>
+            <span class="text-ink-700">/ <span id="pages-total">—</span> pages</span>
           </div>
-        </form>
+          <div class="flex items-baseline gap-1.5">
+            <span id="flag-total" class="text-xl font-extrabold tabular-nums text-coral-600">0</span>
+            <span class="text-ink-700">claims flagged</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 md:px-10 pt-5">
+        <div class="h-2 bg-ink-100 rounded-full overflow-hidden">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-coral-500 to-coral-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-5 gap-0 md:gap-6 p-6 md:p-10">
+
+        <div class="md:col-span-2 mb-6 md:mb-0">
+          <div class="text-xs font-semibold uppercase tracking-wider text-ink-700 mb-3">Activity</div>
+          <div id="log" class="scroll-soft font-mono text-[11px] leading-relaxed text-ink-700 h-80 overflow-y-auto bg-ink-100 rounded-2xl p-4 space-y-0.5"></div>
+        </div>
+
+        <div class="md:col-span-3">
+          <div class="text-xs font-semibold uppercase tracking-wider text-ink-700 mb-3">Findings so far</div>
+          <div id="findings" class="scroll-soft h-80 overflow-y-auto space-y-3 pr-1">
+            <div id="findings-empty" class="h-full flex flex-col items-center justify-center text-center px-6">
+              <div class="text-4xl mb-3">🌿</div>
+              <div class="font-semibold text-ink-800">All clear so far</div>
+              <div class="text-sm text-ink-700 mt-1">Flagged claims will appear here as we scan</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- Progress -->
-  <section id="progress-section" class="max-w-6xl mx-auto px-6 pb-12 hidden">
-    <div class="rule mb-6"></div>
-    <div class="flex items-baseline justify-between mb-4">
-      <h2 class="font-display text-3xl">
-        <span class="serif-italic">In progress</span>
-      </h2>
-      <div class="text-sm tabular text-ink/70">
-        <span id="pages-done">0</span> / <span id="pages-total">—</span> pages
-        &nbsp;·&nbsp;
-        <span id="flag-total">0</span> flags
+  <section id="result-section" class="max-w-6xl mx-auto px-6 md:px-10 pb-24 hidden">
+    <div class="bg-gradient-to-br from-coral-500 to-coral-400 rounded-3xl shadow-pop p-8 md:p-12 text-white">
+      <div class="flex flex-wrap items-start justify-between gap-6">
+        <div>
+          <div class="inline-flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-xs font-semibold mb-4">
+            <span>✨</span>
+            <span>Audit complete</span>
+          </div>
+          <h2 class="text-4xl md:text-5xl font-extrabold tracking-tight">
+            Your report is ready.
+          </h2>
+          <p class="mt-3 text-white/90 max-w-xl">
+            A full breakdown — every flagged claim, why it may breach the law, and how to fix it.
+          </p>
+        </div>
+        <a id="download-link" href="#"
+           class="inline-flex items-center gap-2 bg-white text-coral-600 px-7 py-4 rounded-2xl font-semibold shadow-pop hover:-translate-y-0.5 transition-transform">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"/>
+          </svg>
+          <span>Download Excel</span>
+        </a>
       </div>
-    </div>
-    <div class="progress-track w-full h-1 mb-8">
-      <div id="progress-bar" class="progress-bar h-1" style="width:0%"></div>
-    </div>
 
-    <div class="grid md:grid-cols-2 gap-8">
-      <div>
-        <div class="text-xs tracking-[0.25em] uppercase text-ink/60 mb-3">Live log</div>
-        <div id="log" class="font-mono text-xs text-ink/70 h-72 overflow-y-auto space-y-1 bg-cream/40 p-4 border border-ink/10"></div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
+        <div class="bg-white/15 backdrop-blur rounded-2xl p-5">
+          <div class="text-xs text-white/80 font-semibold uppercase tracking-wider">Pages</div>
+          <div class="text-4xl font-extrabold mt-1 tabular-nums" id="final-pages">—</div>
+        </div>
+        <div class="bg-white/15 backdrop-blur rounded-2xl p-5">
+          <div class="text-xs text-white/80 font-semibold uppercase tracking-wider">Total flags</div>
+          <div class="text-4xl font-extrabold mt-1 tabular-nums" id="final-flags">—</div>
+        </div>
+        <div class="bg-white/15 backdrop-blur rounded-2xl p-5">
+          <div class="text-xs text-white/80 font-semibold uppercase tracking-wider">High</div>
+          <div class="text-4xl font-extrabold mt-1 tabular-nums" id="final-high">—</div>
+        </div>
+        <div class="bg-white/15 backdrop-blur rounded-2xl p-5">
+          <div class="text-xs text-white/80 font-semibold uppercase tracking-wider">Medium</div>
+          <div class="text-4xl font-extrabold mt-1 tabular-nums" id="final-medium">—</div>
+        </div>
       </div>
-      <div>
-        <div class="text-xs tracking-[0.25em] uppercase text-ink/60 mb-3">Findings as they arrive</div>
-        <div id="findings" class="h-72 overflow-y-auto space-y-3 pr-2"></div>
-      </div>
+
+      <button id="new-audit-btn"
+        class="mt-8 text-sm text-white/90 hover:text-white underline underline-offset-4 font-medium">
+        ← Run another audit
+      </button>
     </div>
   </section>
 
-  <!-- Result -->
-  <section id="result-section" class="max-w-6xl mx-auto px-6 pb-24 hidden">
-    <div class="rule mb-6"></div>
-    <h2 class="font-display text-5xl leading-none mb-8">
-      <span class="serif-italic">Complete.</span>
-    </h2>
-    <div class="grid md:grid-cols-4 gap-6 mb-10">
-      <div class="border border-ink/20 p-5">
-        <div class="text-xs tracking-[0.25em] uppercase text-ink/60">Pages scanned</div>
-        <div class="font-display text-5xl mt-2 tabular" id="final-pages">—</div>
-      </div>
-      <div class="border border-ink/20 p-5">
-        <div class="text-xs tracking-[0.25em] uppercase text-ink/60">Total flags</div>
-        <div class="font-display text-5xl mt-2 tabular" id="final-flags">—</div>
-      </div>
-      <div class="border border-ink/20 p-5 bg-[#8b2a1a]/5">
-        <div class="text-xs tracking-[0.25em] uppercase text-[#8b2a1a]">High severity</div>
-        <div class="font-display text-5xl mt-2 tabular" id="final-high">—</div>
-      </div>
-      <div class="border border-ink/20 p-5 bg-amber/5">
-        <div class="text-xs tracking-[0.25em] uppercase text-amber">Medium</div>
-        <div class="font-display text-5xl mt-2 tabular" id="final-medium">—</div>
-      </div>
-    </div>
-    <a id="download-link" href="#"
-       class="inline-flex items-center gap-3 bg-ink text-paper px-7 py-3 font-display text-lg tracking-tight hover:bg-sage transition-colors">
-      <span>Download Excel report</span>
-      <span>↓</span>
-    </a>
-  </section>
-
-  <!-- Footer -->
-  <footer class="max-w-6xl mx-auto px-6 pb-16">
-    <div class="rule mb-4"></div>
-    <p class="text-xs text-ink/50 leading-relaxed max-w-3xl">
-      This tool produces a first-pass triage of potential greenwashing risk.
-      Outputs are generated by a large language model and must be reviewed by
-      qualified legal counsel before being acted upon. Not legal advice.
+  <footer class="max-w-6xl mx-auto px-6 md:px-10 pb-12 text-center">
+    <p class="text-xs text-ink-700 max-w-2xl mx-auto leading-relaxed">
+      This tool provides a first-pass compliance triage using a large language model.
+      Outputs should be reviewed by qualified legal counsel. Not legal advice.
     </p>
   </footer>
 
   <script>
-    document.getElementById('today').textContent = new Date().toLocaleDateString('en-AU', {
-      year: 'numeric', month: 'short', day: '2-digit'
-    }).toUpperCase();
-
     const form = document.getElementById('audit-form');
     const submitBtn = document.getElementById('submit-btn');
+    const submitLabel = document.getElementById('submit-label');
     const progressSection = document.getElementById('progress-section');
     const resultSection = document.getElementById('result-section');
     const logEl = document.getElementById('log');
     const findingsEl = document.getElementById('findings');
+    const findingsEmpty = document.getElementById('findings-empty');
     const pagesDoneEl = document.getElementById('pages-done');
     const pagesTotalEl = document.getElementById('pages-total');
     const flagTotalEl = document.getElementById('flag-total');
     const progressBar = document.getElementById('progress-bar');
+    const newAuditBtn = document.getElementById('new-audit-btn');
 
     let plannedPages = 0;
+    let currentSrc = null;
+    let highCount = 0;
+    let medCount = 0;
+    let lowCount = 0;
 
     function log(msg, tone = 'neutral') {
       const line = document.createElement('div');
       line.className = 'log-line';
       const ts = new Date().toLocaleTimeString('en-AU', { hour12: false });
-      const colour = tone === 'flag' ? 'text-rust'
-                   : tone === 'skip' ? 'text-ink/40'
-                   : tone === 'done' ? 'text-sage' : '';
-      line.innerHTML = `<span class="text-ink/40">${ts}</span> <span class="${colour}">${msg}</span>`;
+      const colour = tone === 'flag' ? 'text-coral-600 font-semibold'
+                   : tone === 'skip' ? 'text-ink-500'
+                   : tone === 'done' ? 'text-mint font-semibold' : '';
+      line.innerHTML = `<span class="text-ink-500">${ts}</span> <span class="${colour}">${msg}</span>`;
       logEl.appendChild(line);
       logEl.scrollTop = logEl.scrollHeight;
     }
 
+    function sevBadge(sev) {
+      if (sev === 'High') {
+        return `<span class="inline-flex items-center gap-1 bg-coral-100 text-coral-700 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full">● High</span>`;
+      } else if (sev === 'Medium') {
+        return `<span class="inline-flex items-center gap-1 bg-sunny/15 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full" style="color:#b88500">● Medium</span>`;
+      } else {
+        return `<span class="inline-flex items-center gap-1 bg-mint/10 text-mint text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full">● Low</span>`;
+      }
+    }
+
     function renderFinding(result) {
       if (!result.flags || result.flags.length === 0) return;
+      findingsEmpty.classList.add('hidden');
       result.flags.forEach(f => {
+        if (f.severity === 'High') highCount++;
+        else if (f.severity === 'Medium') medCount++;
+        else lowCount++;
+
         const card = document.createElement('div');
-        card.className = 'border-l-2 border-ink/20 pl-4 py-1 log-line';
-        const sevClass = f.severity === 'High' ? 'sev-high'
-                       : f.severity === 'Medium' ? 'sev-medium' : 'sev-low';
+        card.className = 'slide-in bg-white border border-ink-200 rounded-2xl p-4 hover:shadow-card transition-shadow';
+        const urlShort = result.url.replace(/^https?:\/\//, '').slice(0, 50);
+        const escapedClaim = f.claim_text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const escapedReason = f.breach_reason.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const escapedRemediation = f.remediation.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         card.innerHTML = `
-          <div class="flex items-center gap-2 mb-1">
-            <span class="${sevClass} text-[10px] tracking-widest uppercase px-2 py-0.5">${f.severity}</span>
+          <div class="flex items-center justify-between gap-2 mb-2">
+            ${sevBadge(f.severity)}
             <a href="${result.url}" target="_blank" rel="noopener"
-               class="text-xs font-mono text-ink/50 hover:text-ink truncate max-w-xs">${result.url}</a>
+               class="text-[11px] font-mono text-ink-700 hover:text-coral-600 truncate max-w-[60%]" title="${result.url}">
+              ${urlShort}${result.url.length > 50 ? '…' : ''}
+            </a>
           </div>
-          <div class="font-display italic text-base leading-snug">"${f.claim_text}"</div>
-          <div class="text-xs text-ink/60 mt-1">${f.breach_reason}</div>
+          <div class="font-semibold text-ink-900 leading-snug text-[15px]">
+            "${escapedClaim}"
+          </div>
+          <details class="mt-2">
+            <summary class="text-xs text-coral-600 font-semibold hover:text-coral-700">
+              Why flagged →
+            </summary>
+            <div class="mt-2 text-xs text-ink-800 leading-relaxed">${escapedReason}</div>
+            <div class="mt-2 text-xs text-ink-800 leading-relaxed">
+              <span class="font-semibold text-ink-900">Fix:</span> ${escapedRemediation}
+            </div>
+          </details>
         `;
         findingsEl.insertBefore(card, findingsEl.firstChild);
       });
     }
 
+    function resetState() {
+      highCount = 0;
+      medCount = 0;
+      lowCount = 0;
+      plannedPages = 0;
+      logEl.innerHTML = '';
+      findingsEl.innerHTML = '';
+      findingsEl.appendChild(findingsEmpty);
+      findingsEmpty.classList.remove('hidden');
+      pagesDoneEl.textContent = '0';
+      flagTotalEl.textContent = '0';
+      pagesTotalEl.textContent = '—';
+      progressBar.style.width = '0%';
+    }
+
+    newAuditBtn.addEventListener('click', () => {
+      resultSection.classList.add('hidden');
+      progressSection.classList.add('hidden');
+      resetState();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       submitBtn.disabled = true;
-      logEl.innerHTML = '';
-      findingsEl.innerHTML = '';
+      submitLabel.textContent = 'Starting…';
+      resetState();
       resultSection.classList.add('hidden');
       progressSection.classList.remove('hidden');
-      plannedPages = 0;
+
+      setTimeout(() => progressSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 
       const payload = {
         url: document.getElementById('url').value,
@@ -314,37 +467,40 @@
       } catch (err) {
         log('Network error: ' + err.message, 'skip');
         submitBtn.disabled = false;
+        submitLabel.textContent = 'Start the audit';
         return;
       }
 
       if (!startResp.ok) {
         const txt = await startResp.text();
-        log('Failed to start: ' + txt, 'skip');
+        log('Could not start: ' + txt, 'skip');
         submitBtn.disabled = false;
+        submitLabel.textContent = 'Start the audit';
         return;
       }
       const { job_id, stream_url } = await startResp.json();
       log(`Job ${job_id.slice(0,8)} started`);
+      submitLabel.textContent = 'Auditing…';
 
-      const src = new EventSource(stream_url);
-      src.addEventListener('status', e => log(JSON.parse(e.data).message));
-      src.addEventListener('total', e => {
+      currentSrc = new EventSource(stream_url);
+      currentSrc.addEventListener('status', e => log(JSON.parse(e.data).message));
+      currentSrc.addEventListener('total', e => {
         plannedPages = JSON.parse(e.data).planned;
         pagesTotalEl.textContent = plannedPages;
       });
-      src.addEventListener('fetch', e => {
+      currentSrc.addEventListener('fetch', e => {
         const d = JSON.parse(e.data);
-        log(`fetching [${d.index}] ${d.url}`);
+        log(`fetch [${d.index}] ${d.url}`);
       });
-      src.addEventListener('analyse', e => {
+      currentSrc.addEventListener('analyse', e => {
         const d = JSON.parse(e.data);
-        log(`analysing ${d.url}`);
+        log(`analyse ${d.url}`);
       });
-      src.addEventListener('skip', e => {
+      currentSrc.addEventListener('skip', e => {
         const d = JSON.parse(e.data);
         log(`skip ${d.url} (${d.reason})`, 'skip');
       });
-      src.addEventListener('result', e => {
+      currentSrc.addEventListener('result', e => {
         const d = JSON.parse(e.data);
         pagesDoneEl.textContent = d.pages_done;
         flagTotalEl.textContent = d.running_total;
@@ -357,37 +513,35 @@
         }
         renderFinding(d);
       });
-      src.addEventListener('error', e => {
+      currentSrc.addEventListener('error', e => {
         try {
           const d = JSON.parse(e.data);
           log('ERROR: ' + d.message, 'skip');
         } catch (_) {
           log('Stream error', 'skip');
         }
-        src.close();
+        currentSrc.close();
         submitBtn.disabled = false;
+        submitLabel.textContent = 'Start the audit';
       });
-      src.addEventListener('done', e => {
+      currentSrc.addEventListener('done', e => {
         let d = {};
         try { d = JSON.parse(e.data); } catch (_) {}
-        log('audit complete', 'done');
-        src.close();
+        log('Audit complete', 'done');
+        currentSrc.close();
         submitBtn.disabled = false;
+        submitLabel.textContent = 'Start the audit';
 
         if (d.download_url) {
           progressBar.style.width = '100%';
           document.getElementById('final-pages').textContent = d.pages_scanned ?? pagesDoneEl.textContent;
           document.getElementById('final-flags').textContent = d.total_flags ?? flagTotalEl.textContent;
-
-          // Count severities from rendered findings
-          const highCount = findingsEl.querySelectorAll('.sev-high').length;
-          const medCount  = findingsEl.querySelectorAll('.sev-medium').length;
           document.getElementById('final-high').textContent = highCount;
           document.getElementById('final-medium').textContent = medCount;
 
           document.getElementById('download-link').href = d.download_url;
           resultSection.classList.remove('hidden');
-          resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setTimeout(() => resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
         }
       });
     });
