@@ -548,7 +548,9 @@ async def run_audit(job: Job) -> None:
 app = FastAPI(title="Greenwashing Auditor")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+_static_dir = os.path.join(BASE_DIR, "static")
+os.makedirs(_static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
