@@ -19,31 +19,20 @@
           },
           colors: {
             coral: {
-              50:  '#fff5f3',
-              100: '#ffe4de',
-              200: '#ffc5ba',
-              300: '#ff9d8a',
-              400: '#ff7a65',
-              500: '#ff5a5f',
-              600: '#e84148',
-              700: '#c53238',
+              50: '#fff5f3', 100: '#ffe4de', 200: '#ffc5ba', 300: '#ff9d8a',
+              400: '#ff7a65', 500: '#ff5a5f', 600: '#e84148', 700: '#c53238',
             },
             ink: {
-              900: '#222222',
-              800: '#484848',
-              700: '#6e6e6e',
-              500: '#b0b0b0',
-              300: '#dddddd',
-              200: '#ebebeb',
-              100: '#f7f7f7',
+              900: '#222222', 800: '#484848', 700: '#6e6e6e',
+              500: '#b0b0b0', 300: '#dddddd', 200: '#ebebeb', 100: '#f7f7f7',
             },
             mint: '#00a699',
             sunny: '#ffb400',
           },
           boxShadow: {
-            card:  '0 6px 16px rgba(0,0,0,0.06), 0 1.5px 4px rgba(0,0,0,0.04)',
-            pop:   '0 10px 30px rgba(0,0,0,0.10), 0 3px 6px rgba(0,0,0,0.04)',
-            glow:  '0 8px 28px rgba(255,90,95,0.35)',
+            card: '0 6px 16px rgba(0,0,0,0.06), 0 1.5px 4px rgba(0,0,0,0.04)',
+            pop:  '0 10px 30px rgba(0,0,0,0.10), 0 3px 6px rgba(0,0,0,0.04)',
+            glow: '0 8px 28px rgba(255,90,95,0.35)',
           },
         },
       },
@@ -64,10 +53,7 @@
       to   { opacity: 1; transform: translateY(0); }
     }
     .log-line { animation: fadeIn 0.25s ease-out; }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .field:focus {
       outline: none;
       border-color: #222 !important;
@@ -85,6 +71,25 @@
     }
     details > summary { list-style: none; cursor: pointer; }
     details > summary::-webkit-details-marker { display: none; }
+
+    /* Known cards: muted + slightly faded */
+    .status-known {
+      background: #f7f7f7 !important;
+      opacity: 0.72;
+    }
+    .status-known:hover { opacity: 1; }
+    .status-resolved {
+      background: #e2efda !important;
+    }
+
+    /* File drop zone */
+    .drop-zone {
+      transition: all 0.2s;
+    }
+    .drop-zone.dragging {
+      border-color: #ff5a5f;
+      background: #fff5f3;
+    }
   </style>
 </head>
 
@@ -179,6 +184,54 @@
           </div>
         </div>
 
+        <!-- Compare with previous audit -->
+        <div>
+          <label class="block text-sm font-semibold mb-2">
+            Compare with a previous audit
+            <span class="ml-1 font-normal text-ink-700">· optional</span>
+          </label>
+          <div id="drop-zone" class="drop-zone relative border-2 border-dashed border-ink-300 rounded-2xl p-5 bg-ink-100/60 hover:border-ink-500 transition-colors cursor-pointer">
+            <input id="previous_file" type="file" accept=".xlsx,.xlsm"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+            <div id="drop-empty" class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-white border border-ink-200 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-ink-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+              </div>
+              <div>
+                <div class="font-semibold text-sm">Upload previous Excel report</div>
+                <div class="text-xs text-ink-700 mt-0.5">
+                  Claims that matched before will be marked <span class="font-semibold">KNOWN</span> so you can focus on what's new
+                </div>
+              </div>
+            </div>
+            <div id="drop-filled" class="hidden items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-mint/10 flex items-center justify-center shrink-0">
+                <svg class="w-6 h-6 text-mint" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="font-semibold text-sm truncate" id="upload-filename">—</div>
+                <div class="text-xs text-ink-700 mt-0.5" id="upload-count">—</div>
+              </div>
+              <button type="button" id="upload-clear" class="text-xs text-ink-700 hover:text-coral-600 font-semibold px-3 py-2">
+                Remove
+              </button>
+            </div>
+            <div id="drop-uploading" class="hidden items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-coral-50 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-coral-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/>
+                  <path fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                </svg>
+              </div>
+              <div class="font-semibold text-sm">Reading your previous report…</div>
+            </div>
+          </div>
+        </div>
+
         <label class="inline-flex items-center gap-3 cursor-pointer select-none group">
           <span class="relative">
             <input id="include_subdomains" type="checkbox" class="sr-only peer" />
@@ -219,10 +272,10 @@
         </div>
       </div>
       <div class="bg-white border border-ink-200 rounded-2xl p-5 flex gap-3 items-start">
-        <div class="w-9 h-9 rounded-xl bg-sunny/10 flex items-center justify-center shrink-0" style="color:#b88500">📊</div>
+        <div class="w-9 h-9 rounded-xl bg-sunny/10 flex items-center justify-center shrink-0" style="color:#b88500">🔄</div>
         <div>
-          <div class="font-semibold">Excel you can share</div>
-          <div class="text-sm text-ink-700 mt-0.5">Severity, claim, reason, remediation</div>
+          <div class="font-semibold">Diff vs. last audit</div>
+          <div class="text-sm text-ink-700 mt-0.5">Flag only what's new, skip claims you've already reviewed</div>
         </div>
       </div>
     </div>
@@ -245,8 +298,12 @@
             <span class="text-ink-700">/ <span id="pages-total">—</span> pages</span>
           </div>
           <div class="flex items-baseline gap-1.5">
-            <span id="flag-total" class="text-xl font-extrabold tabular-nums text-coral-600">0</span>
-            <span class="text-ink-700">claims flagged</span>
+            <span id="new-total" class="text-xl font-extrabold tabular-nums text-coral-600">0</span>
+            <span class="text-ink-700">new</span>
+          </div>
+          <div class="flex items-baseline gap-1.5" id="known-counter-wrap">
+            <span id="known-total" class="text-xl font-extrabold tabular-nums text-ink-500">0</span>
+            <span class="text-ink-700">known</span>
           </div>
         </div>
       </div>
@@ -257,16 +314,29 @@
         </div>
       </div>
 
+      <!-- Filter toggle - only shown when a previous report is attached -->
+      <div id="filter-bar" class="hidden px-6 md:px-10 pt-5 flex items-center justify-between">
+        <div class="text-xs font-semibold uppercase tracking-wider text-ink-700">Findings</div>
+        <label class="inline-flex items-center gap-2 cursor-pointer select-none text-sm">
+          <span class="relative">
+            <input id="hide-known" type="checkbox" checked class="sr-only peer" />
+            <span class="block w-9 h-5 bg-ink-300 rounded-full transition-colors peer-checked:bg-mint"></span>
+            <span class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4"></span>
+          </span>
+          <span class="font-medium">Hide known claims</span>
+        </label>
+      </div>
+
       <div class="grid md:grid-cols-5 gap-0 md:gap-6 p-6 md:p-10">
 
         <div class="md:col-span-2 mb-6 md:mb-0">
           <div class="text-xs font-semibold uppercase tracking-wider text-ink-700 mb-3">Activity</div>
-          <div id="log" class="scroll-soft font-mono text-[11px] leading-relaxed text-ink-700 h-80 overflow-y-auto bg-ink-100 rounded-2xl p-4 space-y-0.5"></div>
+          <div id="log" class="scroll-soft font-mono text-[11px] leading-relaxed text-ink-700 h-96 overflow-y-auto bg-ink-100 rounded-2xl p-4 space-y-0.5"></div>
         </div>
 
         <div class="md:col-span-3">
-          <div class="text-xs font-semibold uppercase tracking-wider text-ink-700 mb-3">Findings so far</div>
-          <div id="findings" class="scroll-soft h-80 overflow-y-auto space-y-3 pr-1">
+          <div id="findings-header" class="text-xs font-semibold uppercase tracking-wider text-ink-700 mb-3">Findings so far</div>
+          <div id="findings" class="scroll-soft h-96 overflow-y-auto space-y-3 pr-1">
             <div id="findings-empty" class="h-full flex flex-col items-center justify-center text-center px-6">
               <div class="text-4xl mb-3">🌿</div>
               <div class="font-semibold text-ink-800">All clear so far</div>
@@ -289,7 +359,7 @@
           <h2 class="text-4xl md:text-5xl font-extrabold tracking-tight">
             Your report is ready.
           </h2>
-          <p class="mt-3 text-white/90 max-w-xl">
+          <p class="mt-3 text-white/90 max-w-xl" id="result-subtitle">
             A full breakdown — every flagged claim, why it may breach the law, and how to fix it.
           </p>
         </div>
@@ -304,20 +374,20 @@
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
         <div class="bg-white/15 backdrop-blur rounded-2xl p-5">
-          <div class="text-xs text-white/80 font-semibold uppercase tracking-wider">Pages</div>
+          <div class="text-xs text-white/80 font-semibold uppercase tracking-wider">Pages scanned</div>
           <div class="text-4xl font-extrabold mt-1 tabular-nums" id="final-pages">—</div>
         </div>
         <div class="bg-white/15 backdrop-blur rounded-2xl p-5">
-          <div class="text-xs text-white/80 font-semibold uppercase tracking-wider">Total flags</div>
-          <div class="text-4xl font-extrabold mt-1 tabular-nums" id="final-flags">—</div>
+          <div class="text-xs text-white/80 font-semibold uppercase tracking-wider">🆕 New</div>
+          <div class="text-4xl font-extrabold mt-1 tabular-nums" id="final-new">—</div>
         </div>
         <div class="bg-white/15 backdrop-blur rounded-2xl p-5">
-          <div class="text-xs text-white/80 font-semibold uppercase tracking-wider">High</div>
-          <div class="text-4xl font-extrabold mt-1 tabular-nums" id="final-high">—</div>
+          <div class="text-xs text-white/80 font-semibold uppercase tracking-wider">Known</div>
+          <div class="text-4xl font-extrabold mt-1 tabular-nums" id="final-known">—</div>
         </div>
         <div class="bg-white/15 backdrop-blur rounded-2xl p-5">
-          <div class="text-xs text-white/80 font-semibold uppercase tracking-wider">Medium</div>
-          <div class="text-4xl font-extrabold mt-1 tabular-nums" id="final-medium">—</div>
+          <div class="text-xs text-white/80 font-semibold uppercase tracking-wider">Resolved</div>
+          <div class="text-4xl font-extrabold mt-1 tabular-nums" id="final-resolved">—</div>
         </div>
       </div>
 
@@ -346,21 +416,112 @@
     const findingsEmpty = document.getElementById('findings-empty');
     const pagesDoneEl = document.getElementById('pages-done');
     const pagesTotalEl = document.getElementById('pages-total');
-    const flagTotalEl = document.getElementById('flag-total');
+    const newTotalEl = document.getElementById('new-total');
+    const knownTotalEl = document.getElementById('known-total');
+    const knownCounterWrap = document.getElementById('known-counter-wrap');
     const progressBar = document.getElementById('progress-bar');
     const newAuditBtn = document.getElementById('new-audit-btn');
+    const filterBar = document.getElementById('filter-bar');
+    const hideKnownToggle = document.getElementById('hide-known');
+
+    // Upload UI
+    const dropZone = document.getElementById('drop-zone');
+    const previousFileInput = document.getElementById('previous_file');
+    const dropEmpty = document.getElementById('drop-empty');
+    const dropFilled = document.getElementById('drop-filled');
+    const dropUploading = document.getElementById('drop-uploading');
+    const uploadFilename = document.getElementById('upload-filename');
+    const uploadCount = document.getElementById('upload-count');
+    const uploadClearBtn = document.getElementById('upload-clear');
 
     let plannedPages = 0;
     let currentSrc = null;
-    let highCount = 0;
-    let medCount = 0;
-    let lowCount = 0;
+    let highCount = 0, medCount = 0, lowCount = 0;
+    let newCount = 0, knownCount = 0;
+    let uploadedId = null;
+
+    function setDropState(state) {
+      // state: 'empty' | 'uploading' | 'filled'
+      dropEmpty.classList.toggle('hidden', state !== 'empty');
+      dropEmpty.classList.toggle('flex', state === 'empty');
+      dropUploading.classList.toggle('hidden', state !== 'uploading');
+      dropUploading.classList.toggle('flex', state === 'uploading');
+      dropFilled.classList.toggle('hidden', state !== 'filled');
+      dropFilled.classList.toggle('flex', state === 'filled');
+      // Disable the invisible file input overlay when we have a file
+      previousFileInput.style.pointerEvents = state === 'filled' ? 'none' : 'auto';
+    }
+
+    async function uploadPreviousFile(file) {
+      setDropState('uploading');
+      const fd = new FormData();
+      fd.append('file', file);
+      try {
+        const resp = await fetch('/api/upload_previous', { method: 'POST', body: fd });
+        if (!resp.ok) {
+          const txt = await resp.text();
+          let msg = 'Upload failed';
+          try { msg = JSON.parse(txt).detail || msg; } catch (_) { msg = txt || msg; }
+          alert(msg);
+          setDropState('empty');
+          previousFileInput.value = '';
+          return;
+        }
+        const d = await resp.json();
+        uploadedId = d.upload_id;
+        uploadFilename.textContent = d.filename;
+        uploadCount.textContent = `${d.claim_count} previous claim${d.claim_count === 1 ? '' : 's'} loaded · we'll flag anything new`;
+        setDropState('filled');
+      } catch (err) {
+        alert('Upload error: ' + err.message);
+        setDropState('empty');
+        previousFileInput.value = '';
+      }
+    }
+
+    previousFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) uploadPreviousFile(file);
+    });
+
+    uploadClearBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadedId = null;
+      previousFileInput.value = '';
+      setDropState('empty');
+    });
+
+    // Drag-and-drop
+    ['dragenter', 'dragover'].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('dragging');
+      });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('dragging');
+      });
+    });
+    dropZone.addEventListener('drop', (e) => {
+      const file = e.dataTransfer.files[0];
+      if (file && /\.(xlsx|xlsm)$/i.test(file.name)) {
+        uploadPreviousFile(file);
+      } else if (file) {
+        alert('Please drop an .xlsx file');
+      }
+    });
 
     function log(msg, tone = 'neutral') {
       const line = document.createElement('div');
       line.className = 'log-line';
       const ts = new Date().toLocaleTimeString('en-AU', { hour12: false });
       const colour = tone === 'flag' ? 'text-coral-600 font-semibold'
+                   : tone === 'known' ? 'text-ink-500'
                    : tone === 'skip' ? 'text-ink-500'
                    : tone === 'done' ? 'text-mint font-semibold' : '';
       line.innerHTML = `<span class="text-ink-500">${ts}</span> <span class="${colour}">${msg}</span>`;
@@ -378,6 +539,23 @@
       }
     }
 
+    function statusBadge(status) {
+      if (status === 'NEW') {
+        return `<span class="inline-flex items-center gap-1 bg-coral-500 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full">✦ NEW</span>`;
+      } else if (status === 'KNOWN') {
+        return `<span class="inline-flex items-center gap-1 bg-ink-200 text-ink-800 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full">✓ Known</span>`;
+      }
+      return '';
+    }
+
+    function applyFilter() {
+      const hide = hideKnownToggle.checked;
+      findingsEl.querySelectorAll('[data-status="KNOWN"]').forEach(el => {
+        el.style.display = hide ? 'none' : '';
+      });
+    }
+    hideKnownToggle.addEventListener('change', applyFilter);
+
     function renderFinding(result) {
       if (!result.flags || result.flags.length === 0) return;
       findingsEmpty.classList.add('hidden');
@@ -386,17 +564,25 @@
         else if (f.severity === 'Medium') medCount++;
         else lowCount++;
 
+        if (f.status === 'NEW') newCount++;
+        else if (f.status === 'KNOWN') knownCount++;
+
+        const statusClass = f.status === 'KNOWN' ? 'status-known' : '';
         const card = document.createElement('div');
-        card.className = 'slide-in bg-white border border-ink-200 rounded-2xl p-4 hover:shadow-card transition-shadow';
+        card.className = `slide-in bg-white border border-ink-200 rounded-2xl p-4 hover:shadow-card transition-shadow ${statusClass}`;
+        card.dataset.status = f.status;
         const urlShort = result.url.replace(/^https?:\/\//, '').slice(0, 50);
         const escapedClaim = f.claim_text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const escapedReason = f.breach_reason.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const escapedRemediation = f.remediation.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         card.innerHTML = `
-          <div class="flex items-center justify-between gap-2 mb-2">
-            ${sevBadge(f.severity)}
+          <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <div class="flex items-center gap-2">
+              ${statusBadge(f.status)}
+              ${sevBadge(f.severity)}
+            </div>
             <a href="${result.url}" target="_blank" rel="noopener"
-               class="text-[11px] font-mono text-ink-700 hover:text-coral-600 truncate max-w-[60%]" title="${result.url}">
+               class="text-[11px] font-mono text-ink-700 hover:text-coral-600 truncate max-w-[50%]" title="${result.url}">
               ${urlShort}${result.url.length > 50 ? '…' : ''}
             </a>
           </div>
@@ -413,21 +599,29 @@
             </div>
           </details>
         `;
-        findingsEl.insertBefore(card, findingsEl.firstChild);
+        // NEW flags go to the top, KNOWN flags after them
+        if (f.status === 'NEW') {
+          findingsEl.insertBefore(card, findingsEl.firstChild);
+        } else {
+          findingsEl.appendChild(card);
+        }
       });
+      newTotalEl.textContent = newCount;
+      knownTotalEl.textContent = knownCount;
+      applyFilter();
     }
 
     function resetState() {
-      highCount = 0;
-      medCount = 0;
-      lowCount = 0;
+      highCount = medCount = lowCount = 0;
+      newCount = knownCount = 0;
       plannedPages = 0;
       logEl.innerHTML = '';
       findingsEl.innerHTML = '';
       findingsEl.appendChild(findingsEmpty);
       findingsEmpty.classList.remove('hidden');
       pagesDoneEl.textContent = '0';
-      flagTotalEl.textContent = '0';
+      newTotalEl.textContent = '0';
+      knownTotalEl.textContent = '0';
       pagesTotalEl.textContent = '—';
       progressBar.style.width = '0%';
     }
@@ -447,6 +641,12 @@
       resultSection.classList.add('hidden');
       progressSection.classList.remove('hidden');
 
+      // Show/hide filter & known counter based on whether we're diffing
+      const diffing = Boolean(uploadedId);
+      filterBar.classList.toggle('hidden', !diffing);
+      filterBar.classList.toggle('flex', diffing);
+      knownCounterWrap.style.display = diffing ? '' : 'none';
+
       setTimeout(() => progressSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 
       const payload = {
@@ -456,6 +656,7 @@
         delay: parseFloat(document.getElementById('delay').value),
         include_subdomains: document.getElementById('include_subdomains').checked,
       };
+      if (uploadedId) payload.previous_upload_id = uploadedId;
 
       let startResp;
       try {
@@ -473,14 +674,19 @@
 
       if (!startResp.ok) {
         const txt = await startResp.text();
-        log('Could not start: ' + txt, 'skip');
+        let msg = txt;
+        try { msg = JSON.parse(txt).detail || txt; } catch (_) {}
+        log('Could not start: ' + msg, 'skip');
         submitBtn.disabled = false;
         submitLabel.textContent = 'Start the audit';
         return;
       }
       const { job_id, stream_url } = await startResp.json();
-      log(`Job ${job_id.slice(0,8)} started`);
+      log(`Job ${job_id.slice(0,8)} started${diffing ? ' (diff mode)' : ''}`);
       submitLabel.textContent = 'Auditing…';
+
+      // Upload ID is consumed by the server on start; clear it so a re-run wouldn't try to reuse
+      uploadedId = null;
 
       currentSrc = new EventSource(stream_url);
       currentSrc.addEventListener('status', e => log(JSON.parse(e.data).message));
@@ -503,14 +709,14 @@
       currentSrc.addEventListener('result', e => {
         const d = JSON.parse(e.data);
         pagesDoneEl.textContent = d.pages_done;
-        flagTotalEl.textContent = d.running_total;
         if (plannedPages > 0) {
           const pct = Math.min(100, Math.round((d.pages_done / plannedPages) * 100));
           progressBar.style.width = pct + '%';
         }
-        if (d.flags.length > 0) {
-          log(`✓ ${d.flags.length} flag(s) on ${d.url}`, 'flag');
-        }
+        const newOnes = d.flags.filter(f => f.status === 'NEW').length;
+        const knownOnes = d.flags.filter(f => f.status === 'KNOWN').length;
+        if (newOnes > 0) log(`✦ ${newOnes} new flag(s) on ${d.url}`, 'flag');
+        if (knownOnes > 0) log(`✓ ${knownOnes} known on ${d.url}`, 'known');
         renderFinding(d);
       });
       currentSrc.addEventListener('error', e => {
@@ -535,9 +741,23 @@
         if (d.download_url) {
           progressBar.style.width = '100%';
           document.getElementById('final-pages').textContent = d.pages_scanned ?? pagesDoneEl.textContent;
-          document.getElementById('final-flags').textContent = d.total_flags ?? flagTotalEl.textContent;
-          document.getElementById('final-high').textContent = highCount;
-          document.getElementById('final-medium').textContent = medCount;
+          document.getElementById('final-new').textContent = d.new_total ?? newCount;
+          document.getElementById('final-known').textContent = d.known_total ?? knownCount;
+          document.getElementById('final-resolved').textContent = d.resolved_total ?? 0;
+
+          // Subtitle based on diff context
+          const subtitle = document.getElementById('result-subtitle');
+          if (diffing) {
+            const n = d.new_total ?? newCount;
+            const r = d.resolved_total ?? 0;
+            if (n === 0 && r === 0) {
+              subtitle.textContent = 'Nothing changed since your last audit — everything you\'ve reviewed is still in place.';
+            } else {
+              subtitle.textContent = `${n} new claim${n===1?'':'s'} to review${r > 0 ? `, and ${r} previously-flagged claim${r===1?'':'s'} no longer appear` : ''}.`;
+            }
+          } else {
+            subtitle.textContent = 'A full breakdown — every flagged claim, why it may breach the law, and how to fix it.';
+          }
 
           document.getElementById('download-link').href = d.download_url;
           resultSection.classList.remove('hidden');
