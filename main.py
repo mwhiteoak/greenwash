@@ -356,7 +356,11 @@ def parse_previous_excel(data: bytes) -> list[PreviousClaim]:
     return results
 
 
+# --------------------------------------------------------------------------- #
+# Crawling helpers
+# --------------------------------------------------------------------------- #
 
+def _normalise_url(url: str) -> str:
     url, _ = urldefrag(url)
     return url.rstrip("/")
 
