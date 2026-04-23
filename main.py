@@ -29,7 +29,8 @@ import anthropic
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, StreamingResponse, Response
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import HTMLResponse, StreamingResponse, Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from openpyxl import Workbook
@@ -171,6 +172,9 @@ class Job:
     id: str
     request: StartAuditRequest
     queue: asyncio.Queue = field(default_factory=asyncio.Queue)
+    # Replay buffer: every event is also appended here so a reconnecting
+    # client can catch up by passing ?since=<N> in the stream URL.
+    event_log: list[dict] = field(default_factory=list)
     flags: list[FlaggedClaim] = field(default_factory=list)
     previous_claims: list[PreviousClaim] = field(default_factory=list)
     pages_scanned: int = 0
@@ -644,7 +648,9 @@ async def run_audit(job: Job) -> None:
     q = job.queue
 
     async def emit(event: str, data: dict) -> None:
-        await q.put({"event": event, "data": data})
+        evt = {"event": event, "data": data}
+        job.event_log.append(evt)
+        await q.put(evt)
 
     job.status = "running"
     await emit("status", {"message": f"Starting audit of {req.url}"})
@@ -808,6 +814,23 @@ async def run_audit(job: Job) -> None:
 
 app = FastAPI(title="Greenwashing Auditor")
 
+
+@app.exception_handler(RequestValidationError)
+async def on_validation_error(request: Request, exc: RequestValidationError):
+    # Print to stdout so the failing request body shows up in Railway logs
+    try:
+        body = (await request.body()).decode("utf-8", errors="replace")
+    except Exception:
+        body = "(could not read body)"
+    print(f"[VALIDATION 422] {request.method} {request.url.path}")
+    print(f"  body: {body[:500]}")
+    print(f"  errors: {exc.errors()}")
+    # Return a friendly, string-only detail the frontend can display
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _static_dir = os.path.join(BASE_DIR, "static")
 os.makedirs(_static_dir, exist_ok=True)
@@ -905,35 +928,59 @@ async def start_audit(req: StartAuditRequest):
 
 
 @app.get("/api/stream/{job_id}")
-async def stream(job_id: str, request: Request):
+async def stream(job_id: str, request: Request, since: int = 0):
     job = JOBS.get(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Unknown job")
 
     async def event_gen() -> AsyncIterator[bytes]:
-        # Send keep-alive comment immediately so the browser opens the stream
+        yield b"retry: 2000\n\n"
         yield b": connected\n\n"
-        while True:
-            if await request.is_disconnected():
-                break
-            try:
-                evt = await asyncio.wait_for(job.queue.get(), timeout=15.0)
-            except asyncio.TimeoutError:
-                # Heartbeat to keep proxies from closing idle connection
-                yield b": heartbeat\n\n"
+
+        # Replay any events the client missed before this connection opened.
+        # The client tracks the highest `id:` it has seen and passes it as
+        # ?since=N so we skip events 0..N-1 and resume from N.
+        sent = 0
+        replay = list(job.event_log)  # snapshot
+        for idx, evt in enumerate(replay):
+            if idx < since:
                 continue
             payload = json.dumps(evt["data"])
-            line = f"event: {evt['event']}\ndata: {payload}\n\n".encode()
+            line = f"id: {idx}\nevent: {evt['event']}\ndata: {payload}\n\n".encode()
             yield line
-            if evt["event"] == "done" or evt["event"] == "error":
-                break
+            sent = idx + 1
+            if evt["event"] in ("done", "error"):
+                return  # job already finished, nothing more to send
+
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    evt = await asyncio.wait_for(job.queue.get(), timeout=5.0)
+                except asyncio.TimeoutError:
+                    yield b": heartbeat\n\n"
+                    continue
+                # Skip events already replayed (queue may still hold them)
+                # by tracking the event_log length at emit time.
+                current_idx = job.event_log.index(evt) if evt in job.event_log else sent
+                if current_idx < sent:
+                    continue
+                payload = json.dumps(evt["data"])
+                line = f"id: {current_idx}\nevent: {evt['event']}\ndata: {payload}\n\n".encode()
+                yield line
+                sent = current_idx + 1
+                if evt["event"] in ("done", "error"):
+                    break
+        except asyncio.CancelledError:
+            pass
 
     return StreamingResponse(
         event_gen(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  # disables buffering on reverse proxies
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
             "Connection": "keep-alive",
         },
     )
