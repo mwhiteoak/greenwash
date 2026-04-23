@@ -652,8 +652,8 @@
       const payload = {
         url: document.getElementById('url').value,
         api_key: document.getElementById('api_key').value,
-        max_pages: parseInt(document.getElementById('max_pages').value, 10),
-        delay: parseFloat(document.getElementById('delay').value),
+        max_pages: parseInt(document.getElementById('max_pages').value, 10) || 50,
+        delay: parseFloat(document.getElementById('delay').value) || 0.5,
         include_subdomains: document.getElementById('include_subdomains').checked,
       };
       if (uploadedId) payload.previous_upload_id = uploadedId;
@@ -675,7 +675,22 @@
       if (!startResp.ok) {
         const txt = await startResp.text();
         let msg = txt;
-        try { msg = JSON.parse(txt).detail || txt; } catch (_) {}
+        try {
+          const body = JSON.parse(txt);
+          if (typeof body.detail === 'string') {
+            msg = body.detail;
+          } else if (Array.isArray(body.detail)) {
+            // Pydantic validation errors: array of {loc, msg, type}
+            msg = body.detail
+              .map(err => {
+                const field = Array.isArray(err.loc) ? err.loc.filter(x => x !== 'body').join('.') : 'field';
+                return `${field}: ${err.msg}`;
+              })
+              .join(' · ');
+          } else {
+            msg = JSON.stringify(body);
+          }
+        } catch (_) {}
         log('Could not start: ' + msg, 'skip');
         submitBtn.disabled = false;
         submitLabel.textContent = 'Start the audit';
@@ -688,61 +703,109 @@
       // Upload ID is consumed by the server on start; clear it so a re-run wouldn't try to reuse
       uploadedId = null;
 
-      currentSrc = new EventSource(stream_url);
-      currentSrc.addEventListener('status', e => log(JSON.parse(e.data).message));
-      currentSrc.addEventListener('total', e => {
-        plannedPages = JSON.parse(e.data).planned;
-        pagesTotalEl.textContent = plannedPages;
-      });
-      currentSrc.addEventListener('fetch', e => {
-        const d = JSON.parse(e.data);
-        log(`fetch [${d.index}] ${d.url}`);
-      });
-      currentSrc.addEventListener('analyse', e => {
-        const d = JSON.parse(e.data);
-        log(`analyse ${d.url}`);
-      });
-      currentSrc.addEventListener('skip', e => {
-        const d = JSON.parse(e.data);
-        log(`skip ${d.url} (${d.reason})`, 'skip');
-      });
-      currentSrc.addEventListener('result', e => {
-        const d = JSON.parse(e.data);
-        pagesDoneEl.textContent = d.pages_done;
-        if (plannedPages > 0) {
-          const pct = Math.min(100, Math.round((d.pages_done / plannedPages) * 100));
-          progressBar.style.width = pct + '%';
-        }
-        const newOnes = d.flags.filter(f => f.status === 'NEW').length;
-        const knownOnes = d.flags.filter(f => f.status === 'KNOWN').length;
-        if (newOnes > 0) log(`✦ ${newOnes} new flag(s) on ${d.url}`, 'flag');
-        if (knownOnes > 0) log(`✓ ${knownOnes} known on ${d.url}`, 'known');
-        renderFinding(d);
-      });
-      currentSrc.addEventListener('error', e => {
-        try {
-          const d = JSON.parse(e.data);
-          log('ERROR: ' + d.message, 'skip');
-        } catch (_) {
-          log('Stream error', 'skip');
-        }
-        currentSrc.close();
-        submitBtn.disabled = false;
-        submitLabel.textContent = 'Start the audit';
-      });
-      currentSrc.addEventListener('done', e => {
-        let d = {};
-        try { d = JSON.parse(e.data); } catch (_) {}
-        log('Audit complete', 'done');
-        currentSrc.close();
-        submitBtn.disabled = false;
-        submitLabel.textContent = 'Start the audit';
+      // Track the highest event id we've received so reconnects can resume
+      let lastEventId = -1;
+      let reconnectAttempts = 0;
+      let streamFinished = false;
 
-        if (d.download_url) {
-          progressBar.style.width = '100%';
-          document.getElementById('final-pages').textContent = d.pages_scanned ?? pagesDoneEl.textContent;
-          document.getElementById('final-new').textContent = d.new_total ?? newCount;
-          document.getElementById('final-known').textContent = d.known_total ?? knownCount;
+      function attachHandlers(src) {
+        const markId = (e) => {
+          if (e.lastEventId) {
+            const n = parseInt(e.lastEventId, 10);
+            if (!isNaN(n) && n > lastEventId) lastEventId = n;
+          }
+        };
+
+        src.addEventListener('status', e => { markId(e); log(JSON.parse(e.data).message); });
+        src.addEventListener('total', e => {
+          markId(e);
+          plannedPages = JSON.parse(e.data).planned;
+          pagesTotalEl.textContent = plannedPages;
+        });
+        src.addEventListener('fetch', e => {
+          markId(e);
+          const d = JSON.parse(e.data);
+          log(`fetch [${d.index}] ${d.url}`);
+        });
+        src.addEventListener('analyse', e => {
+          markId(e);
+          const d = JSON.parse(e.data);
+          log(`analyse ${d.url}`);
+        });
+        src.addEventListener('skip', e => {
+          markId(e);
+          const d = JSON.parse(e.data);
+          log(`skip ${d.url} (${d.reason})`, 'skip');
+        });
+        src.addEventListener('result', e => {
+          markId(e);
+          const d = JSON.parse(e.data);
+          pagesDoneEl.textContent = d.pages_done;
+          if (plannedPages > 0) {
+            const pct = Math.min(100, Math.round((d.pages_done / plannedPages) * 100));
+            progressBar.style.width = pct + '%';
+          }
+          const newOnes = d.flags.filter(f => f.status === 'NEW').length;
+          const knownOnes = d.flags.filter(f => f.status === 'KNOWN').length;
+          if (newOnes > 0) log(`✦ ${newOnes} new flag(s) on ${d.url}`, 'flag');
+          if (knownOnes > 0) log(`✓ ${knownOnes} known on ${d.url}`, 'known');
+          renderFinding(d);
+        });
+
+        // Server-sent "error" event (with data) = actual server error
+        src.addEventListener('error', (e) => {
+          // EventSource fires a generic 'error' event whenever the connection
+          // drops. e.data is only populated if the server emitted an explicit
+          // error event. Distinguish the two.
+          if (e.data) {
+            try {
+              const d = JSON.parse(e.data);
+              log('Server error: ' + d.message, 'skip');
+            } catch (_) {
+              log('Server error', 'skip');
+            }
+            streamFinished = true;
+            src.close();
+            submitBtn.disabled = false;
+            submitLabel.textContent = 'Start the audit';
+            return;
+          }
+          // Transport error - check readyState
+          if (src.readyState === EventSource.CLOSED) {
+            if (streamFinished) return;
+            reconnectAttempts++;
+            if (reconnectAttempts > 10) {
+              log('Lost connection after multiple retries. The audit may still be running on the server.', 'skip');
+              submitBtn.disabled = false;
+              submitLabel.textContent = 'Start the audit';
+              return;
+            }
+            log(`Connection dropped, reconnecting… (attempt ${reconnectAttempts})`, 'skip');
+            // Reconnect with ?since= to replay any events we missed
+            setTimeout(() => {
+              const resumeUrl = stream_url + (stream_url.includes('?') ? '&' : '?') + 'since=' + (lastEventId + 1);
+              currentSrc = new EventSource(resumeUrl);
+              attachHandlers(currentSrc);
+            }, 1500);
+          }
+          // For CONNECTING state, EventSource will auto-retry - let it
+        });
+
+        src.addEventListener('done', e => {
+          markId(e);
+          let d = {};
+          try { d = JSON.parse(e.data); } catch (_) {}
+          log('Audit complete', 'done');
+          streamFinished = true;
+          src.close();
+          submitBtn.disabled = false;
+          submitLabel.textContent = 'Start the audit';
+
+          if (d.download_url) {
+            progressBar.style.width = '100%';
+            document.getElementById('final-pages').textContent = d.pages_scanned ?? pagesDoneEl.textContent;
+            document.getElementById('final-new').textContent = d.new_total ?? newCount;
+            document.getElementById('final-known').textContent = d.known_total ?? knownCount;
           document.getElementById('final-resolved').textContent = d.resolved_total ?? 0;
 
           // Subtitle based on diff context
@@ -762,8 +825,13 @@
           document.getElementById('download-link').href = d.download_url;
           resultSection.classList.remove('hidden');
           setTimeout(() => resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
-        }
-      });
+          }
+        });
+      }
+
+      // Open the initial stream
+      currentSrc = new EventSource(stream_url);
+      attachHandlers(currentSrc);
     });
   </script>
 </body>
